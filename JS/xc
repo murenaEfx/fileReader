@@ -1,0 +1,41 @@
+import { LightningElement, api } from 'lwc';
+import { getRecord, updateRecord } from 'lightning/uiRecordApi';
+import ACCOUNT_ID_FIELD from '@salesforce/schema/Case.AccountId';
+import AUTH_STATUS_FIELD from '@salesforce/schema/Account.AuthStatus__c';
+
+export default class UpdateAuthStatus extends LightningElement {
+    @api recordId; // Automatically passed when placed on a record page
+    message = '';
+    error = '';
+
+    connectedCallback() {
+        this.updateAuthStatusToActive();
+    }
+
+    updateAuthStatusToActive() {
+        getRecord({ recordId: this.recordId, fields: [ACCOUNT_ID_FIELD] })
+            .then(caseRecord => {
+                const accountId = caseRecord.fields.AccountId.value;
+
+                if (!accountId) {
+                    this.error = 'No Account related to this Case.';
+                    return;
+                }
+
+                const fields = {
+                    Id: accountId,
+                    [AUTH_STATUS_FIELD.fieldApiName]: 'ACTIVE'
+                };
+
+                return updateRecord({ fields });
+            })
+            .then(() => {
+                this.message = 'Auth Status set to ACTIVE successfully!';
+                this.error = '';
+            })
+            .catch(err => {
+                this.error = err.body?.message || 'Unknown error';
+                this.message = '';
+            });
+    }
+}
